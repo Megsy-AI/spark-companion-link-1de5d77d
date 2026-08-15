@@ -9,9 +9,7 @@ import { AppProvider } from "@/context/AppContext";
 import BottomNav from "@/components/BottomNav";
 import PrizeModal from "@/components/PrizeModal";
 import StarryBackground from "@/components/StarryBackground";
-import { Suspense, useEffect, useLayoutEffect } from "react";
-import { AnimatePresence } from "framer-motion";
-import PageTransition from "@/components/PageTransition";
+import { useEffect, useLayoutEffect } from "react";
 import {
   MiningPage,
   WarPage,
@@ -62,12 +60,6 @@ const TelegramBackButton = () => {
   return null;
 };
 
-const RouteFallback = () => (
-  <div className="min-h-[60vh] flex items-center justify-center">
-    <div className="h-8 w-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-  </div>
-);
-
 const ResetScrollOnNavigation = () => {
   const { pathname } = useLocation();
 
@@ -78,6 +70,8 @@ const ResetScrollOnNavigation = () => {
 
     const reset = () => {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      const scrollingElement = document.scrollingElement;
+      if (scrollingElement) scrollingElement.scrollTop = 0;
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
     };
@@ -96,29 +90,23 @@ const ResetScrollOnNavigation = () => {
 };
 
 const AnimatedRoutes = () => {
-  const location = useLocation();
-
   useEffect(() => {
     prefetchIdleRoutes(["/", "/tasks", "/servers", "/wallet", "/staking"]);
   }, []);
 
   return (
-    <Suspense fallback={<RouteFallback />}>
-      <AnimatePresence mode="sync" initial={false}>
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<PageTransition><MiningPage /></PageTransition>} />
-          <Route path="/war" element={<PageTransition><WarPage /></PageTransition>} />
-          <Route path="/tasks" element={<PageTransition><TasksPage /></PageTransition>} />
-          <Route path="/servers" element={<PageTransition><ServersPage /></PageTransition>} />
-          <Route path="/wallet" element={<PageTransition><WalletPage /></PageTransition>} />
-          <Route path="/101" element={<PageTransition><AdminPage /></PageTransition>} />
-          <Route path="/staking" element={<PageTransition><StakingPage /></PageTransition>} />
-          <Route path="/ai" element={<PageTransition><AiPage /></PageTransition>} />
-          <Route path="/attack-shop" element={<PageTransition><AttackShopPage /></PageTransition>} />
-          <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
-        </Routes>
-      </AnimatePresence>
-    </Suspense>
+    <Routes>
+      <Route path="/" element={<MiningPage />} />
+      <Route path="/war" element={<WarPage />} />
+      <Route path="/tasks" element={<TasksPage />} />
+      <Route path="/servers" element={<ServersPage />} />
+      <Route path="/wallet" element={<WalletPage />} />
+      <Route path="/101" element={<AdminPage />} />
+      <Route path="/staking" element={<StakingPage />} />
+      <Route path="/ai" element={<AiPage />} />
+      <Route path="/attack-shop" element={<AttackShopPage />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
   );
 };
 

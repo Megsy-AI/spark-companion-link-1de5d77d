@@ -1,46 +1,37 @@
-import { lazy } from "react";
+import MiningPage from "@/pages/MiningPage";
+import WarPage from "@/pages/WarPage";
+import TasksPage from "@/pages/TasksPage";
+import ServersPage from "@/pages/ServersPage";
+import WalletPage from "@/pages/WalletPage";
+import StakingPage from "@/pages/StakingPage";
+import AiPage from "@/pages/AiPage";
+import AdminPage from "@/pages/AdminPage";
+import AttackShopPage from "@/pages/AttackShopPage";
+import NotFound from "@/pages/NotFound";
 
 /**
  * Route loaders kept in one place so we can both lazily render them and
  * prefetch their chunk on user intent (hover / touchstart on a nav link).
  */
-export const routeLoaders: Record<string, () => Promise<unknown>> = {
-  "/": () => import("@/pages/MiningPage"),
-  "/war": () => import("@/pages/WarPage"),
-  "/tasks": () => import("@/pages/TasksPage"),
-  "/servers": () => import("@/pages/ServersPage"),
-  "/wallet": () => import("@/pages/WalletPage"),
-  "/staking": () => import("@/pages/StakingPage"),
-  "/ai": () => import("@/pages/AiPage"),
-  "/101": () => import("@/pages/AdminPage"),
-  "/attack-shop": () => import("@/pages/AttackShopPage"),
-};
-
-const prefetched = new Set<string>();
-
-export function prefetchRoute(path: string) {
-  if (prefetched.has(path)) return;
-  const loader = routeLoaders[path];
-  if (!loader) return;
-  prefetched.add(path);
-  void loader();
+export function prefetchRoute(_path: string) {
+  // Routes are bundled eagerly so Telegram WebView never displays an empty
+  // Suspense boundary while fetching a stale or interrupted route chunk.
 }
 
 /** Warm the most likely next routes once the app is idle. */
 export function prefetchIdleRoutes(paths: string[]) {
-  const run = () => paths.forEach(prefetchRoute);
-  const ric = (window as unknown as { requestIdleCallback?: (cb: () => void) => void }).requestIdleCallback;
-  if (ric) ric(run);
-  else setTimeout(run, 1500);
+  paths.forEach(prefetchRoute);
 }
 
-export const MiningPage = lazy(() => import("@/pages/MiningPage"));
-export const WarPage = lazy(() => import("@/pages/WarPage"));
-export const TasksPage = lazy(() => import("@/pages/TasksPage"));
-export const ServersPage = lazy(() => import("@/pages/ServersPage"));
-export const WalletPage = lazy(() => import("@/pages/WalletPage"));
-export const StakingPage = lazy(() => import("@/pages/StakingPage"));
-export const AiPage = lazy(() => import("@/pages/AiPage"));
-export const AdminPage = lazy(() => import("@/pages/AdminPage"));
-export const AttackShopPage = lazy(() => import("@/pages/AttackShopPage"));
-export const NotFound = lazy(() => import("@/pages/NotFound"));
+export {
+  MiningPage,
+  WarPage,
+  TasksPage,
+  ServersPage,
+  WalletPage,
+  StakingPage,
+  AiPage,
+  AdminPage,
+  AttackShopPage,
+  NotFound,
+};
