@@ -13,6 +13,7 @@ const routes = [
   "/101",
   "/staking",
   "/attack-shop",
+  "/ai",
 ];
 
 const distDir = resolve("dist");
