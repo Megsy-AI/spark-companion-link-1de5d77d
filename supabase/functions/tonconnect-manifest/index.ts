@@ -8,8 +8,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEFAULT_ORIGIN = "https://nova.megsyai.com";
-const ICON_URL = "https://nova.megsyai.com/images/nova-logo.png";
+const DEFAULT_ORIGIN = "https://spark-companion-link-33a5cbb564649.vercel.app";
+const ICON_URL = "https://spark-companion-link-33a5cbb564649.vercel.app/images/nova-logo.png";
 
 const ALLOWED_HOST_SUFFIXES = [
   ".lovable.app",

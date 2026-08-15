@@ -24,5 +24,5 @@ export function resolveTonManifestUrl(): string {
     }
   }
 
-  return "https://nova.megsyai.com/tonconnect-manifest.json";
+  return "https://spark-companion-link-33a5cbb564649.vercel.app/tonconnect-manifest.json";
 }
