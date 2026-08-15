@@ -1,5 +1,6 @@
 import { copyFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { resolveAppOrigin } from "./app-origin.mjs";
 
 // Vercel normally applies the SPA rewrite from vercel.json. These static
 // entry points also make every public app route independently addressable,
@@ -20,7 +21,7 @@ const appShell = resolve(distDir, "index.html");
 // TON Connect requires the manifest URL to match the public dApp origin
 // exactly. VERCEL_URL points at an immutable internal deployment hostname,
 // which differs from the production alias opened by Telegram/Tonkeeper.
-const appOrigin = "https://spark-companion-link-33a5cbb564649.vercel.app";
+const appOrigin = resolveAppOrigin();
 const manifest = {
   url: appOrigin,
   name: "NOVA AI",

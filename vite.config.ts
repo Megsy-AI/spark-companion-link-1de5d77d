@@ -2,9 +2,15 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { resolveAppOrigin } from "./scripts/app-origin.mjs";
 
 // https://vitejs.dev/config/
+const APP_ORIGIN = resolveAppOrigin();
+
 export default defineConfig(({ mode }) => ({
+  define: {
+    __NOVA_BUILD_ORIGIN__: JSON.stringify(APP_ORIGIN),
+  },
   server: {
     host: "::",
     port: 8080,
