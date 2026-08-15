@@ -9,7 +9,7 @@ import { AppProvider } from "@/context/AppContext";
 import BottomNav from "@/components/BottomNav";
 import PrizeModal from "@/components/PrizeModal";
 import StarryBackground from "@/components/StarryBackground";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useLayoutEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import PageTransition from "@/components/PageTransition";
 import {
@@ -68,6 +68,18 @@ const RouteFallback = () => (
   </div>
 );
 
+const ResetScrollOnNavigation = () => {
+  const { pathname } = useLocation();
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [pathname]);
+
+  return null;
+};
+
 const AnimatedRoutes = () => {
   const location = useLocation();
 
@@ -77,7 +89,7 @@ const AnimatedRoutes = () => {
 
   return (
     <Suspense fallback={<RouteFallback />}>
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode="sync" initial={false}>
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<PageTransition><MiningPage /></PageTransition>} />
           <Route path="/war" element={<PageTransition><WarPage /></PageTransition>} />
@@ -115,6 +127,7 @@ const App = () => (
           <BrowserRouter>
             <StarryBackground />
             <TelegramBackButton />
+            <ResetScrollOnNavigation />
             <PrizeModal />
             <div className="max-w-lg mx-auto relative z-10">
               <AnimatedRoutes />
