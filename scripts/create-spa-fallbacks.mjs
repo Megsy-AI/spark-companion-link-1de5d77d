@@ -17,8 +17,10 @@ const routes = [
 const distDir = resolve("dist");
 const appShell = resolve(distDir, "index.html");
 
-const deploymentHost = process.env.VERCEL_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL;
-const appOrigin = deploymentHost ? `https://${deploymentHost.replace(/^https?:\/\//, "")}` : "https://nova.megsyai.com";
+// TON Connect requires the manifest URL to match the public dApp origin
+// exactly. VERCEL_URL points at an immutable internal deployment hostname,
+// which differs from the production alias opened by Telegram/Tonkeeper.
+const appOrigin = "https://spark-companion-link-33a5cbb564649.vercel.app";
 const manifest = {
   url: appOrigin,
   name: "NOVA AI",
