@@ -44,6 +44,11 @@ const BottomNav = () => {
               to={item.to}
               aria-label={item.label}
               aria-current={isActive ? "page" : undefined}
+              onClick={() => {
+                window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+                const scrollingElement = document.scrollingElement;
+                if (scrollingElement) scrollingElement.scrollTop = 0;
+              }}
               onMouseEnter={() => prefetchRoute(item.to)}
               onTouchStart={() => prefetchRoute(item.to)}
               className={cn(
