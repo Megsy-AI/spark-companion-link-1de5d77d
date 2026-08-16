@@ -10004,6 +10004,72 @@ export type Database = {
         }
         Relationships: []
       }
+      telegram_payments: {
+        Row: {
+          amount_nano: number | null
+          amount_stars: number | null
+          amount_usd: number
+          billing_interval: string | null
+          created_at: string
+          credits: number
+          external_id: string | null
+          id: string
+          kind: string
+          method: string
+          nonce: string
+          paid_at: string | null
+          plan: string | null
+          raw: Json
+          sku: string
+          status: string
+          ton_address: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_nano?: number | null
+          amount_stars?: number | null
+          amount_usd?: number
+          billing_interval?: string | null
+          created_at?: string
+          credits?: number
+          external_id?: string | null
+          id?: string
+          kind: string
+          method: string
+          nonce: string
+          paid_at?: string | null
+          plan?: string | null
+          raw?: Json
+          sku: string
+          status?: string
+          ton_address?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_nano?: number | null
+          amount_stars?: number | null
+          amount_usd?: number
+          billing_interval?: string | null
+          created_at?: string
+          credits?: number
+          external_id?: string | null
+          id?: string
+          kind?: string
+          method?: string
+          nonce?: string
+          paid_at?: string | null
+          plan?: string | null
+          raw?: Json
+          sku?: string
+          status?: string
+          ton_address?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       telegram_referrals: {
         Row: {
           created_at: string
@@ -13225,6 +13291,10 @@ export type Database = {
       }
       sync_mining_for_telegram: {
         Args: { _telegram_id: number }
+        Returns: Json
+      }
+      tg_fulfill_payment: {
+        Args: { p_external_id: string; p_payment_id: string; p_raw?: Json }
         Returns: Json
       }
       track_order: {
