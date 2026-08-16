@@ -32,6 +32,20 @@ serve(async (req) => {
       });
     }
 
+    // AI-personalised purchase offer, hosted here for the same reason.
+    if (body?.task === 'smart_offer') {
+      const result = await buildSmartOffer(
+        supabase,
+        Number(body?.telegram_id),
+        String(body?.surface ?? 'general'),
+      );
+      return new Response(JSON.stringify(result), {
+        status: result.success ? 200 : 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+
     const tg = async (method: string, payload: Record<string, unknown>) => {
       const r = await fetch(`${BASE_URL}/${method}`, {
         method: 'POST',
