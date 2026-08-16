@@ -46,3 +46,6 @@ verify_jwt = false
 
 [functions.stars-webhook]
 verify_jwt = false
+
+[functions.auto-notifications]
+verify_jwt = false
