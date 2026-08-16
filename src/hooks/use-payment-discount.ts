@@ -12,6 +12,11 @@ export interface PaymentDiscount {
   next_tier_pct: number | null;
   next_tier_ton: number | null;
   remaining_to_next_ton: number | null;
+  ai_bonus_pct: number;
+  ai_headline: string;
+  ai_message: string;
+  ai_cta: string;
+  ai_expires_at: string | null;
 }
 
 const EMPTY: PaymentDiscount = {
@@ -24,6 +29,11 @@ const EMPTY: PaymentDiscount = {
   next_tier_pct: null,
   next_tier_ton: null,
   remaining_to_next_ton: null,
+  ai_bonus_pct: 0,
+  ai_headline: "",
+  ai_message: "",
+  ai_cta: "",
+  ai_expires_at: null,
 };
 
 /** Price after the player's active discount, rounded to 3 decimals. */
@@ -35,6 +45,7 @@ export const usePaymentDiscount = () => {
   const telegramId = user.telegramUser.id;
   const [discount, setDiscount] = useState<PaymentDiscount>(EMPTY);
   const [loading, setLoading] = useState(true);
+  const [thinking, setThinking] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!telegramId) return;
@@ -50,9 +61,39 @@ export const usePaymentDiscount = () => {
     }
   }, [telegramId]);
 
+  /**
+   * Asks the AI strategist for a personalised 24h offer, then re-reads the
+   * discount so the stacked bonus is reflected everywhere. The AI bonus is
+   * always recomputed and capped server-side.
+   */
+  const requestSmartOffer = useCallback(
+    async (surface: "servers" | "shop" | "ai" | "general" = "general") => {
+      if (!telegramId) return;
+      setThinking(true);
+      try {
+        await supabase.functions.invoke("ai-smart-offer", {
+          body: { telegram_id: telegramId, surface },
+        });
+        await refresh();
+      } catch {
+        /* the tier discount still applies without the AI bonus */
+      } finally {
+        setThinking(false);
+      }
+    },
+    [refresh, telegramId],
+  );
+
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  return { discount, loading, refresh, priceFor: (p: number) => applyDiscount(p, discount.discount_pct) };
+  return {
+    discount,
+    loading,
+    thinking,
+    refresh,
+    requestSmartOffer,
+    priceFor: (p: number) => applyDiscount(p, discount.discount_pct),
+  };
 };
