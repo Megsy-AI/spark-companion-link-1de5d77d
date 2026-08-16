@@ -119,6 +119,10 @@ const App = () => (
       // A hard-coded Mini App URL makes Tonkeeper show "Unknown error" when
       // the bot/short-name differs between deployments.
       returnStrategy: "back",
+      // Default is "ios", which leaves iOS users staring at a "waiting for
+      // confirmation" modal without the wallet ever opening — the main reason
+      // payments were started but never signed.
+      skipRedirectToWallet: "never",
     }}
   >
     <QueryClientProvider client={queryClient}>
