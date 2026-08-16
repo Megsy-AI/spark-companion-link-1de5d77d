@@ -9,6 +9,8 @@ import { purchaseBattleItemForTelegram, verifyTonOnChain } from "@/lib/game-api"
 import { Sword, Zap, Shield, Flame, Package, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 
 import { PaymentError, sendTonPayment } from "@/lib/ton";
+import { usePaymentDiscount } from "@/hooks/use-payment-discount";
+import DiscountBanner from "@/components/DiscountBanner";
 
 const TON_ICON = "/images/gram-icon.png";
 
@@ -41,6 +43,7 @@ const AttackShopPage = () => {
   const walletAddress = useTonAddress();
   const [verifying, setVerifying] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<BattleCategory>("attack");
+  const { discount, priceFor, refresh: refreshDiscount } = usePaymentDiscount();
 
   const items = battlePackagesByCategory[activeCategory];
   const cheapestKey = useMemo(() => {
@@ -53,7 +56,7 @@ const AttackShopPage = () => {
 
     try {
       const transaction = await sendTonPayment(tonConnectUI, {
-        amountTon: pkg.price,
+        amountTon: priceFor(pkg.price),
         telegramId: user.telegramUser.id,
         action: "battle_item",
         metadata: { category, packageKey },
@@ -73,11 +76,12 @@ const AttackShopPage = () => {
       await purchaseBattleItemForTelegram({
         telegramId: user.telegramUser.id,
         category, packageKey: pkg.key, packageName: pkg.name,
-        quantity: pkg.quantity, tonPaid: pkg.price,
+        quantity: pkg.quantity, tonPaid: transaction.amountTon,
         walletAddress, txHash: verification.tx_hash || transaction?.boc,
       });
 
       await refreshProfile();
+      void refreshDiscount();
       setVerifying(null);
       toast({ title: "Purchase Complete!", description: `${pkg.name} added to your inventory` });
     } catch (err) {
@@ -120,6 +124,8 @@ const AttackShopPage = () => {
           </div>
         </div>
       </motion.div>
+
+      <DiscountBanner discount={discount} />
 
       {/* Category Selector */}
       <div className="grid grid-cols-3 gap-2 mb-4">
@@ -215,7 +221,10 @@ const AttackShopPage = () => {
                       ) : (
                         <span className="flex items-center gap-1.5">
                           <img src={TON_ICON} alt="Gram" className="w-4 h-4 rounded-full"  loading="lazy" decoding="async" />
-                          {pkg.price}
+                          {discount.discount_pct > 0 && (
+                            <span className="line-through opacity-50">{pkg.price}</span>
+                          )}
+                          {priceFor(pkg.price)}
                         </span>
                       )}
                     </Button>

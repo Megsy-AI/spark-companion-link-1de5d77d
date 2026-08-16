@@ -14,6 +14,8 @@ import TelegramStar from "@/components/TelegramStar";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { PaymentError, sendTonPayment } from "@/lib/ton";
 import { purchaseServerForTelegram, verifyTonOnChain } from "@/lib/game-api";
+import { usePaymentDiscount } from "@/hooks/use-payment-discount";
+import DiscountBanner from "@/components/DiscountBanner";
 
 
 const TON_ICON = "/images/gram-icon.png";
@@ -43,6 +45,7 @@ const ServersPage = () => {
   const [tonBusy, setTonBusy] = useState<string | null>(null);
   const [tonConnectUI] = useTonConnectUI();
   const walletAddress = useTonAddress();
+  const { discount, priceFor, refresh: refreshDiscount } = usePaymentDiscount();
 
 
   useEffect(() => { void loadServers(); void loadMyNfts(); }, []);
@@ -99,7 +102,7 @@ const ServersPage = () => {
   };
 
   const handleBuyWithTon = async (server: Server) => {
-    const price = Number(server.price_ton);
+    const price = priceFor(Number(server.price_ton));
     setTonBusy(server.id);
     try {
       const transaction = await sendTonPayment(tonConnectUI, {
@@ -119,12 +122,13 @@ const ServersPage = () => {
       await purchaseServerForTelegram({
         telegramId: user.telegramUser.id,
         serverId: server.id,
-        tonPaid: price,
+        tonPaid: transaction.amountTon,
         walletAddress,
         txHash: verification.tx_hash || transaction?.boc,
       });
 
       await refreshProfile();
+      void refreshDiscount();
       toast({ title: "Purchase complete", description: `${server.name} added successfully` });
     } catch (err) {
       if (err instanceof PaymentError) {
@@ -151,6 +155,8 @@ const ServersPage = () => {
     <div className="min-h-screen bg-gradient-dark pb-24">
       <SpotlightHero title="Servers">
       <div className="px-4 pt-8">
+
+      <DiscountBanner discount={discount} />
 
       <div className="mb-4">
         <CreateNftButton onCreated={() => void loadMyNfts()} />
@@ -209,7 +215,10 @@ const ServersPage = () => {
                 ) : (
                   <span className="flex items-center gap-1">
                     <img src={TON_ICON} alt="Gram" className="w-3 h-3 rounded-full" loading="lazy" decoding="async" />
-                    {Number(server.price_ton)} TON
+                    {discount.discount_pct > 0 && (
+                      <span className="line-through opacity-50">{Number(server.price_ton)}</span>
+                    )}
+                    {priceFor(Number(server.price_ton))} TON
                   </span>
                 )}
               </Button>
@@ -225,7 +234,7 @@ const ServersPage = () => {
                 ) : (
                   <span className="flex items-center gap-1">
                     <TelegramStar className="h-3 w-3" />
-                    {starsForTon(Number(server.price_ton)).toLocaleString()} Stars
+                    {starsForTon(priceFor(Number(server.price_ton))).toLocaleString()} Stars
                   </span>
                 )}
               </Button>
