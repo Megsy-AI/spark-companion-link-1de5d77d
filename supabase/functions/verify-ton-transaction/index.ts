@@ -1,13 +1,18 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { Address, Cell } from "npm:@ton/core@0.63.1";
+import { Cell } from "npm:@ton/core@0.63.1";
 import { z } from "npm:zod@3.24.2";
 
 const TREASURY = "UQAp1QxnLJ2z44IooUovvtVShw7hJBEdxCRV3RlbCYC3D8qj";
 const BodySchema = z.object({
   intent_id: z.string().uuid(),
-  boc: z.string().min(10).max(100000),
+  // Optional: some wallets (especially inside Telegram) never return the signed
+  // BOC to the mini app even though the transfer went through on-chain, so we
+  // must be able to verify using only the unique memo of the payment intent.
+  boc: z.string().min(10).max(100000).nullable().optional(),
   sender: z.string().min(10).max(100).nullable().optional(),
+  // Shorter polling window for background reconciliation calls.
+  quick: z.boolean().optional(),
 });
 
 Deno.serve(async (req) => {
@@ -20,21 +25,25 @@ Deno.serve(async (req) => {
 
     const admin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
     const { data: intent, error } = await admin.from("ton_payment_intents")
-      .select("id,memo,amount_nano,status,expires_at,wallet_address,tx_hash")
+      .select("id,memo,amount_nano,status,expires_at,wallet_address,tx_hash,boc")
       .eq("id", parsed.data.intent_id).single();
 
     if (error || !intent) return json({ error: "Payment reference not found", verified: false }, 404);
     if (intent.status === "confirmed") return json({ verified: true, tx_hash: intent.tx_hash });
     if (new Date(intent.expires_at).getTime() < Date.now()) return json({ error: "Payment reference expired", verified: false }, 410);
 
-    const requestedSender = parsed.data.sender ? normalizeAddress(parsed.data.sender) : null;
-    await admin.from("ton_payment_intents").update({ boc: parsed.data.boc, wallet_address: parsed.data.sender ?? null, status: "submitted" }).eq("id", intent.id);
+    await admin.from("ton_payment_intents").update({
+      boc: parsed.data.boc ?? intent.boc ?? null,
+      wallet_address: parsed.data.sender ?? intent.wallet_address ?? null,
+      status: "submitted",
+    }).eq("id", intent.id);
 
-    for (let attempt = 0; attempt < 12; attempt += 1) {
+    const attempts = parsed.data.quick ? 3 : 12;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
       const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${encodeURIComponent(TREASURY)}&limit=50&archival=true`);
       const payload = await response.json().catch(() => null);
       if (response.ok && payload?.ok && Array.isArray(payload.result)) {
-        const match = payload.result.find((tx: Record<string, unknown>) => matchesIntent(tx, intent.memo, Number(intent.amount_nano), requestedSender));
+        const match = payload.result.find((tx: Record<string, unknown>) => matchesIntent(tx, intent.memo, Number(intent.amount_nano)));
         if (match) {
           const txHash = String((match.transaction_id as { hash?: string } | undefined)?.hash ?? "");
           const { error: updateError } = await admin.from("ton_payment_intents").update({
@@ -44,7 +53,7 @@ Deno.serve(async (req) => {
           return json({ verified: true, tx_hash: txHash });
         }
       }
-      if (attempt < 11) await new Promise((resolve) => setTimeout(resolve, 3000));
+      if (attempt < attempts - 1) await new Promise((resolve) => setTimeout(resolve, 3000));
     }
 
     return json({ verified: false, error: "Payment is still confirming. Try again shortly." }, 202);
@@ -54,10 +63,12 @@ Deno.serve(async (req) => {
   }
 });
 
-function matchesIntent(tx: Record<string, unknown>, memo: string, amountNano: number, sender: string | null) {
+// The memo is a per-payment UUID, so it alone identifies the transfer. Matching
+// on the sender too made legitimate payments fail whenever the wallet reported a
+// different address format than the chain.
+function matchesIntent(tx: Record<string, unknown>, memo: string, amountNano: number) {
   const input = tx.in_msg as Record<string, unknown> | undefined;
   if (!input || Number(input.value) < amountNano) return false;
-  if (sender && normalizeAddress(String(input.source ?? "")) !== sender) return false;
   return extractComment(input) === memo;
 }
 
@@ -75,9 +86,6 @@ function extractComment(input: Record<string, unknown>) {
   } catch { return ""; }
 }
 
-function normalizeAddress(value: string) {
-  try { return Address.parse(value).toRawString(); } catch { return value; }
-}
 
 function json(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });

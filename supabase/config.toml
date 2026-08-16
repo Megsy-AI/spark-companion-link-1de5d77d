@@ -1,4 +1,5 @@
 project_id = "ltgampdtawuefwwayncx"
+
 [functions.generate-nft]
 verify_jwt = false
 
@@ -10,7 +11,6 @@ verify_jwt = false
 
 [functions.send-notifications]
 verify_jwt = false
-
 
 [functions.tonconnect-manifest]
 verify_jwt = false
@@ -33,11 +33,11 @@ verify_jwt = false
 [functions.ai-deapi]
 verify_jwt = false
 
-[functions.stars-pay]
-verify_jwt = false
-
-[functions.stars-webhook]
+[functions.battle-bots]
 verify_jwt = false
 
 [functions.auto-notifications]
+verify_jwt = false
+
+[functions.nova-notify]
 verify_jwt = false
