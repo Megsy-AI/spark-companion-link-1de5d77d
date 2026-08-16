@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
           return json({ verified: true, tx_hash: txHash });
         }
       }
-      if (attempt < 11) await new Promise((resolve) => setTimeout(resolve, 3000));
+      if (attempt < attempts - 1) await new Promise((resolve) => setTimeout(resolve, 3000));
     }
 
     return json({ verified: false, error: "Payment is still confirming. Try again shortly." }, 202);
