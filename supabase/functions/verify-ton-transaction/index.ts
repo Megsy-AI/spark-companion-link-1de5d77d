@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${encodeURIComponent(TREASURY)}&limit=50&archival=true`);
       const payload = await response.json().catch(() => null);
       if (response.ok && payload?.ok && Array.isArray(payload.result)) {
-        const match = payload.result.find((tx: Record<string, unknown>) => matchesIntent(tx, intent.memo, Number(intent.amount_nano), requestedSender));
+        const match = payload.result.find((tx: Record<string, unknown>) => matchesIntent(tx, intent.memo, Number(intent.amount_nano)));
         if (match) {
           const txHash = String((match.transaction_id as { hash?: string } | undefined)?.hash ?? "");
           const { error: updateError } = await admin.from("ton_payment_intents").update({
