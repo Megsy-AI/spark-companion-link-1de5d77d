@@ -21,6 +21,7 @@ import { useApp } from "@/context/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 import { payWithStars, STARS_PRICES } from "@/lib/stars";
 import { PaymentError, sendTonPayment } from "@/lib/ton";
+import { usePaymentDiscount } from "@/hooks/use-payment-discount";
 import { verifyTonOnChain } from "@/lib/game-api";
 import TelegramStar from "@/components/TelegramStar";
 import { setNavRevealed, useNavRevealed } from "@/hooks/use-nav-reveal";
@@ -128,6 +129,8 @@ export default function AiPage() {
   const [busy, setBusy] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [buying, setBuying] = useState(false);
+  const { discount, priceFor, refresh: refreshDiscount } = usePaymentDiscount();
+  const proPrice = priceFor(PLAN_PRICE_TON);
   const [activeUntil, setActiveUntil] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachOpen, setAttachOpen] = useState(false);
@@ -227,7 +230,7 @@ export default function AiPage() {
     setBuying(true);
     try {
       const tx = await sendTonPayment(tonConnectUI, {
-        amountTon: PLAN_PRICE_TON,
+        amountTon: proPrice,
         telegramId: user.telegramUser.id,
         action: "ai_pro",
       });
@@ -247,6 +250,7 @@ export default function AiPage() {
       setActiveUntil(row?.expires_at ?? null);
       setPlanOpen(false);
       toast.success("Pro activated — unlimited for 30 days");
+      void refreshDiscount();
       void refreshProfile?.();
     } catch (e: any) {
       if (e instanceof PaymentError) {
@@ -796,8 +800,16 @@ export default function AiPage() {
 
               <div className="mt-4 rounded-[22px] border border-border bg-[hsl(0_0%_100%/0.66)] px-4 py-4 backdrop-blur-md sm:px-5 sm:py-5">
                 <p className="text-[clamp(32px,10vw,44px)] font-display font-medium leading-none tracking-tight text-gradient-primary">
-                  {PLAN_PRICE_TON} TON
+                  {discount.discount_pct > 0 && (
+                    <span className="mr-2 text-[0.5em] line-through opacity-50">{PLAN_PRICE_TON}</span>
+                  )}
+                  {proPrice} TON
                 </p>
+                {discount.discount_pct > 0 && (
+                  <p className="mt-1 text-[11px] font-display font-bold text-accent">
+                    {discount.first_purchase ? "First purchase" : discount.tier_label} · -{discount.discount_pct}%
+                  </p>
+                )}
                 <p className="mt-1.5 text-[clamp(9px,2.6vw,11px)] uppercase tracking-[0.18em] text-muted-foreground">
                   per month
                 </p>
@@ -831,7 +843,7 @@ export default function AiPage() {
                     className="liquid-press glow-primary flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-primary font-display text-[14px] font-medium text-primary-foreground disabled:opacity-60"
                   >
                     {buying && <Loader2 className="h-4 w-4 animate-spin" />}
-                    Pay {PLAN_PRICE_TON} TON
+                    Pay {proPrice} TON
                   </button>
                   <button
                     type="button"

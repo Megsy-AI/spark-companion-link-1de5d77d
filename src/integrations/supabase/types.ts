@@ -10292,9 +10292,12 @@ export type Database = {
         Row: {
           action: string
           amount_nano: number
+          base_amount_nano: number | null
           boc: string | null
           confirmed_at: string | null
           created_at: string
+          discount_pct: number
+          discount_reason: string | null
           expires_at: string
           failure_reason: string | null
           id: string
@@ -10309,9 +10312,12 @@ export type Database = {
         Insert: {
           action: string
           amount_nano: number
+          base_amount_nano?: number | null
           boc?: string | null
           confirmed_at?: string | null
           created_at?: string
+          discount_pct?: number
+          discount_reason?: string | null
           expires_at?: string
           failure_reason?: string | null
           id?: string
@@ -10326,9 +10332,12 @@ export type Database = {
         Update: {
           action?: string
           amount_nano?: number
+          base_amount_nano?: number | null
           boc?: string | null
           confirmed_at?: string | null
           created_at?: string
+          discount_pct?: number
+          discount_reason?: string | null
           expires_at?: string
           failure_reason?: string | null
           id?: string
@@ -12830,6 +12839,10 @@ export type Database = {
       }
       get_invite_details: { Args: { p_token: string }; Returns: Json }
       get_landing_page_prompt: { Args: { item_id: string }; Returns: string }
+      get_payment_discount_for_telegram: {
+        Args: { _telegram_id: number }
+        Returns: Json
+      }
       get_referral_summary_for_telegram: {
         Args: { _telegram_id: number }
         Returns: Json

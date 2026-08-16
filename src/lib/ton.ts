@@ -97,7 +97,7 @@ const isCancellation = (err: unknown) => {
 export const sendTonPayment = async (
   tonConnectUI: TonConnectUI,
   opts: PaymentOptions,
-): Promise<{ boc: string; intentId: string; memo: string }> => {
+): Promise<{ boc: string; intentId: string; memo: string; amountTon: number; discountPct: number }> => {
   const amountTon = Number(opts.amountTon);
   if (!Number.isFinite(amountTon) || amountTon <= 0) {
     throw new PaymentError("invalid_amount", "Enter a valid Gram amount");
@@ -128,11 +128,19 @@ export const sendTonPayment = async (
     throw new PaymentError("failed", "Could not prepare payment. Please try again.");
   }
 
+  // The backend re-prices the intent with the player's loyalty / first-purchase
+  // discount, so the wallet must always charge the amount the server decided.
+  const chargedNano = BigInt(intent.amount_nano ?? toNano(amountTon).toString());
+  const chargedTon = Number(chargedNano) / 1e9;
+  const discountPct = Number(intent.discount_pct ?? 0);
+  const result0 = { intentId: intent.id as string, memo: intent.memo as string, amountTon: chargedTon, discountPct };
+
   const message = {
     address: TREASURY_ADDRESS,
-    amount: toNano(amountTon).toString(),
+    amount: chargedNano.toString(),
     payload: buildCommentPayload(intent.memo),
   };
+
 
   let sendError: unknown = null;
   try {
@@ -145,7 +153,7 @@ export const sendTonPayment = async (
       }),
       new Promise((resolve) => setTimeout(() => resolve(null), 120_000)),
     ])) as { boc?: string } | null;
-    if (result?.boc) return { boc: result.boc, intentId: intent.id, memo: intent.memo };
+    if (result?.boc) return { boc: result.boc, ...result0 };
   } catch (err) {
     sendError = err;
     console.error("[ton] sendTransaction failed", err);
@@ -156,7 +164,7 @@ export const sendTonPayment = async (
   // the user switches back). The memo is unique per payment, so ask the backend
   // to look for it on-chain before giving up.
   const confirmed = await waitForIntentOnChain(intent.id, account.address);
-  if (confirmed) return { boc: "", intentId: intent.id, memo: intent.memo };
+  if (confirmed) return { boc: "", ...result0 };
 
   if (sendError && isCancellation(sendError)) {
     throw new PaymentError("cancelled", "Payment cancelled in your wallet");
