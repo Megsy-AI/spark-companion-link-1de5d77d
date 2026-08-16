@@ -32,10 +32,14 @@ Deno.serve(async (req) => {
     if (intent.status === "confirmed") return json({ verified: true, tx_hash: intent.tx_hash });
     if (new Date(intent.expires_at).getTime() < Date.now()) return json({ error: "Payment reference expired", verified: false }, 410);
 
-    const requestedSender = parsed.data.sender ? normalizeAddress(parsed.data.sender) : null;
-    await admin.from("ton_payment_intents").update({ boc: parsed.data.boc, wallet_address: parsed.data.sender ?? null, status: "submitted" }).eq("id", intent.id);
+    await admin.from("ton_payment_intents").update({
+      boc: parsed.data.boc ?? intent.boc ?? null,
+      wallet_address: parsed.data.sender ?? intent.wallet_address ?? null,
+      status: "submitted",
+    }).eq("id", intent.id);
 
-    for (let attempt = 0; attempt < 12; attempt += 1) {
+    const attempts = parsed.data.quick ? 3 : 12;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
       const response = await fetch(`https://toncenter.com/api/v2/getTransactions?address=${encodeURIComponent(TREASURY)}&limit=50&archival=true`);
       const payload = await response.json().catch(() => null);
       if (response.ok && payload?.ok && Array.isArray(payload.result)) {
