@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { resolveTonManifestUrl } from "@/lib/tonconnect-manifest";
+import TonPaymentRecovery from "@/components/TonPaymentRecovery";
 import { AppProvider } from "@/context/AppContext";
 import BottomNav from "@/components/BottomNav";
 import PrizeModal from "@/components/PrizeModal";
@@ -135,6 +136,7 @@ const App = () => (
             <StarryBackground />
             <TelegramBackButton />
             <ResetScrollOnNavigation />
+            <TonPaymentRecovery />
             <PrizeModal />
             <div className="max-w-lg mx-auto relative z-10">
               <AnimatedRoutes />
