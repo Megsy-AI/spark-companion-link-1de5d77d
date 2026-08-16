@@ -190,7 +190,7 @@ export const verifyTonOnChain = async (
       "Content-Type": "application/json",
       "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify({ intent_id: intentId, boc, sender: sender ?? null }),
+    body: JSON.stringify({ intent_id: intentId, boc: boc || null, sender: sender ?? null }),
   });
   if (!res.ok) return { verified: false, error: `Verification service unavailable (${res.status})` };
   return await res.json();
