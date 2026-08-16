@@ -22,6 +22,15 @@ serve(async (req) => {
 
     const body = await req.json();
 
+    // Scheduled broadcast (every 4 hours) — hosted here so it shares this
+    // function's deployment. Telegram updates never contain a `task` field.
+    if (body?.task === 'auto_notify') {
+      const result = await runAutoNotifications(supabase, BASE_URL);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const tg = async (method: string, payload: Record<string, unknown>) => {
       const r = await fetch(`${BASE_URL}/${method}`, {
         method: 'POST',
