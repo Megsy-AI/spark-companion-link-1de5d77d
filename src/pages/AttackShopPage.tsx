@@ -9,6 +9,7 @@ import { purchaseBattleItemForTelegram, verifyTonOnChain } from "@/lib/game-api"
 import { Sword, Zap, Shield, Flame, Package, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 
 import { PaymentError, sendTonPayment } from "@/lib/ton";
+import { forgetTonPayment } from "@/lib/ton-pending";
 
 const TON_ICON = "/images/gram-icon.png";
 
@@ -77,6 +78,7 @@ const AttackShopPage = () => {
         walletAddress, txHash: verification.tx_hash || transaction?.boc,
       });
 
+      forgetTonPayment(transaction.intentId);
       await refreshProfile();
       setVerifying(null);
       toast({ title: "Purchase Complete!", description: `${pkg.name} added to your inventory` });
