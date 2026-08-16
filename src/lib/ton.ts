@@ -1,6 +1,7 @@
 import type { TonConnectUI } from "@tonconnect/ui-react";
 import { beginCell } from "@ton/core";
 import { supabase } from "@/integrations/supabase/client";
+import { rememberTonPayment } from "./ton-pending";
 
 /** Single source of truth for the project treasury wallet. */
 export const TREASURY_ADDRESS = "UQAp1QxnLJ2z44IooUovvtVShw7hJBEdxCRV3RlbCYC3D8qj";
