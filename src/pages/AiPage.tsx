@@ -129,6 +129,8 @@ export default function AiPage() {
   const [busy, setBusy] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [buying, setBuying] = useState(false);
+  const { discount, priceFor, refresh: refreshDiscount } = usePaymentDiscount();
+  const proPrice = priceFor(PLAN_PRICE_TON);
   const [activeUntil, setActiveUntil] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachOpen, setAttachOpen] = useState(false);
@@ -248,6 +250,7 @@ export default function AiPage() {
       setActiveUntil(row?.expires_at ?? null);
       setPlanOpen(false);
       toast.success("Pro activated — unlimited for 30 days");
+      void refreshDiscount();
       void refreshProfile?.();
     } catch (e: any) {
       if (e instanceof PaymentError) {
