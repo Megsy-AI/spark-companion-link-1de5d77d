@@ -11,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Power, Lock, TrendingUp, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { PaymentError, sendTonPayment, TON_FEE_BUFFER } from "@/lib/ton";
-import { forgetTonPayment } from "@/lib/ton-pending";
 import { createTransaction, isWalletVerified, verifyTonOnChain } from "@/lib/game-api";
 import { payWithStars, STARS_PRICES, type StarsProductId } from "@/lib/stars";
 import TelegramStar from "@/components/TelegramStar";
@@ -144,7 +143,6 @@ const WalletPage = () => {
       const verification = await verifyTonOnChain(tx.intentId, tx.boc, tonConnectUI.account?.address);
       if (!verification.verified) throw new PaymentError("failed", verification.error ?? "Payment is still confirming");
       await createTransaction({ telegramId: user.telegramUser.id, type: "deposit", amount, currency: "ton", walletAddress: address, txHash: verification.tx_hash });
-      forgetTonPayment(tx.intentId);
       toast({ title: "Deposit Sent", description: `${amount} Gram submitted` });
       setDepositOpen(false);
       setDepositAmount("");
@@ -220,7 +218,6 @@ const WalletPage = () => {
         walletAddress: address,
         txHash: verification.tx_hash || null,
       });
-      forgetTonPayment(tx.intentId);
       setIsVerified(true);
       setVerifyOpen(false);
       toast({ title: "Wallet verified", description: "Your wallet ownership is confirmed" });

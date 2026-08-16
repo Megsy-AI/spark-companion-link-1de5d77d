@@ -1,7 +1,6 @@
 import type { TonConnectUI } from "@tonconnect/ui-react";
 import { beginCell } from "@ton/core";
 import { supabase } from "@/integrations/supabase/client";
-import { rememberTonPayment } from "./ton-pending";
 
 /** Single source of truth for the project treasury wallet. */
 export const TREASURY_ADDRESS = "UQAp1QxnLJ2z44IooUovvtVShw7hJBEdxCRV3RlbCYC3D8qj";
@@ -134,16 +133,6 @@ export const sendTonPayment = async (
     amount: toNano(amountTon).toString(),
     payload: buildCommentPayload(intent.memo),
   };
-
-  // Persist before opening the wallet: Telegram often destroys the mini app
-  // while the user signs, so this is the only way the payment survives.
-  rememberTonPayment({
-    intentId: intent.id,
-    action: opts.action,
-    amountTon,
-    metadata: opts.metadata ?? {},
-    createdAt: Date.now(),
-  });
 
   let sendError: unknown = null;
   try {

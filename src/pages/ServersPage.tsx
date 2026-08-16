@@ -13,7 +13,6 @@ import { payWithStars, starsForTon } from "@/lib/stars";
 import TelegramStar from "@/components/TelegramStar";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { PaymentError, sendTonPayment } from "@/lib/ton";
-import { forgetTonPayment } from "@/lib/ton-pending";
 import { purchaseServerForTelegram, verifyTonOnChain } from "@/lib/game-api";
 
 
@@ -125,7 +124,6 @@ const ServersPage = () => {
         txHash: verification.tx_hash || transaction?.boc,
       });
 
-      forgetTonPayment(transaction.intentId);
       await refreshProfile();
       toast({ title: "Purchase complete", description: `${server.name} added successfully` });
     } catch (err) {

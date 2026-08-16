@@ -21,7 +21,6 @@ import { useApp } from "@/context/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 import { payWithStars, STARS_PRICES } from "@/lib/stars";
 import { PaymentError, sendTonPayment } from "@/lib/ton";
-import { forgetTonPayment } from "@/lib/ton-pending";
 import { verifyTonOnChain } from "@/lib/game-api";
 import TelegramStar from "@/components/TelegramStar";
 import { setNavRevealed, useNavRevealed } from "@/hooks/use-nav-reveal";
@@ -245,7 +244,6 @@ export default function AiPage() {
       });
       if (error) throw error;
       const row = Array.isArray(data) ? data[0] : data;
-      forgetTonPayment(tx.intentId);
       setActiveUntil(row?.expires_at ?? null);
       setPlanOpen(false);
       toast.success("Pro activated — unlimited for 30 days");
