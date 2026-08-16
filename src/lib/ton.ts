@@ -128,11 +128,19 @@ export const sendTonPayment = async (
     throw new PaymentError("failed", "Could not prepare payment. Please try again.");
   }
 
+  // The backend re-prices the intent with the player's loyalty / first-purchase
+  // discount, so the wallet must always charge the amount the server decided.
+  const chargedNano = BigInt(intent.amount_nano ?? toNano(amountTon).toString());
+  const chargedTon = Number(chargedNano) / 1e9;
+  const discountPct = Number(intent.discount_pct ?? 0);
+  const result0 = { intentId: intent.id as string, memo: intent.memo as string, amountTon: chargedTon, discountPct };
+
   const message = {
     address: TREASURY_ADDRESS,
-    amount: toNano(amountTon).toString(),
+    amount: chargedNano.toString(),
     payload: buildCommentPayload(intent.memo),
   };
+
 
   let sendError: unknown = null;
   try {
