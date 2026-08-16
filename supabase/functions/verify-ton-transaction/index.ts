@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
 
     const admin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
     const { data: intent, error } = await admin.from("ton_payment_intents")
-      .select("id,memo,amount_nano,status,expires_at,wallet_address,tx_hash")
+      .select("id,memo,amount_nano,status,expires_at,wallet_address,tx_hash,boc")
       .eq("id", parsed.data.intent_id).single();
 
     if (error || !intent) return json({ error: "Payment reference not found", verified: false }, 404);
