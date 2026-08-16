@@ -134,21 +134,60 @@ export const sendTonPayment = async (
     payload: buildCommentPayload(intent.memo),
   };
 
+  let sendError: unknown = null;
   try {
     // No `from` / `network` fields: some wallets reject the request when the
     // address format they report differs from the one we echo back.
-    const result = await tonConnectUI.sendTransaction({
-      validUntil: Math.floor(Date.now() / 1000) + 300,
-      messages: [message],
-    });
-    if (!result?.boc) {
-      throw new PaymentError("failed", "The wallet did not return a signed transaction. Please try again.");
-    }
-    return { boc: result.boc, intentId: intent.id, memo: intent.memo };
+    const result = (await Promise.race([
+      tonConnectUI.sendTransaction({
+        validUntil: Math.floor(Date.now() / 1000) + 300,
+        messages: [message],
+      }),
+      new Promise((resolve) => setTimeout(() => resolve(null), 120_000)),
+    ])) as { boc?: string } | null;
+    if (result?.boc) return { boc: result.boc, intentId: intent.id, memo: intent.memo };
   } catch (err) {
-    if (err instanceof PaymentError) throw err;
+    sendError = err;
     console.error("[ton] sendTransaction failed", err);
-    if (isCancellation(err)) throw new PaymentError("cancelled", "Payment cancelled in your wallet");
-    throw new PaymentError("failed", "The wallet could not process this transfer. Please try again.");
   }
+
+  // Inside Telegram the wallet often confirms the transfer on-chain without ever
+  // returning the signed BOC to the mini app (the bridge callback is lost when
+  // the user switches back). The memo is unique per payment, so ask the backend
+  // to look for it on-chain before giving up.
+  const confirmed = await waitForIntentOnChain(intent.id, account.address);
+  if (confirmed) return { boc: "", intentId: intent.id, memo: intent.memo };
+
+  if (sendError && isCancellation(sendError)) {
+    throw new PaymentError("cancelled", "Payment cancelled in your wallet");
+  }
+  throw new PaymentError(
+    "failed",
+    "We couldn't confirm the transfer yet. If your wallet shows it as sent, it will be credited shortly.",
+  );
+};
+
+/** Polls the backend, which checks the treasury wallet on-chain for this memo. */
+const waitForIntentOnChain = async (intentId: string, sender?: string | null) => {
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const url = `https://${projectId}.supabase.co/functions/v1/verify-ton-transaction`;
+  const deadline = Date.now() + 90_000;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ intent_id: intentId, sender: sender ?? null, quick: true }),
+      });
+      const json = await res.json().catch(() => null);
+      if (json?.verified) return true;
+    } catch {
+      /* retry */
+    }
+    await new Promise((r) => setTimeout(r, 4000));
+  }
+  return false;
 };
