@@ -45,7 +45,7 @@ const ServersPage = () => {
   const [tonBusy, setTonBusy] = useState<string | null>(null);
   const [tonConnectUI] = useTonConnectUI();
   const walletAddress = useTonAddress();
-  const { discount, priceFor, refresh: refreshDiscount } = usePaymentDiscount();
+  const { discount, priceFor, refresh: refreshDiscount, requestSmartOffer, thinking: offerThinking } = usePaymentDiscount();
 
 
   useEffect(() => { void loadServers(); void loadMyNfts(); }, []);
@@ -156,7 +156,7 @@ const ServersPage = () => {
       <SpotlightHero title="Servers">
       <div className="px-4 pt-8">
 
-      <DiscountBanner discount={discount} />
+      <DiscountBanner discount={discount} thinking={offerThinking} onSmartOffer={() => void requestSmartOffer("servers")} />
 
       <div className="mb-4">
         <CreateNftButton onCreated={() => void loadMyNfts()} />

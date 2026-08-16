@@ -1185,6 +1185,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_smart_offers: {
+        Row: {
+          bonus_pct: number
+          context: Json
+          created_at: string
+          cta: string
+          expires_at: string
+          focus: string
+          headline: string
+          id: string
+          message: string
+          telegram_id: number
+        }
+        Insert: {
+          bonus_pct?: number
+          context?: Json
+          created_at?: string
+          cta?: string
+          expires_at?: string
+          focus?: string
+          headline?: string
+          id?: string
+          message?: string
+          telegram_id: number
+        }
+        Update: {
+          bonus_pct?: number
+          context?: Json
+          created_at?: string
+          cta?: string
+          expires_at?: string
+          focus?: string
+          headline?: string
+          id?: string
+          message?: string
+          telegram_id?: number
+        }
+        Relationships: []
+      }
       ai_subscriptions: {
         Row: {
           created_at: string

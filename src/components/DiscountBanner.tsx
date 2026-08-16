@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Crown, Sparkles } from "lucide-react";
+import { Crown, Loader2, Sparkles, Wand2 } from "lucide-react";
 import type { PaymentDiscount } from "@/hooks/use-payment-discount";
 
 const TIER_STYLES: Record<PaymentDiscount["tier"], string> = {
@@ -10,10 +10,18 @@ const TIER_STYLES: Record<PaymentDiscount["tier"], string> = {
   diamond: "from-cyan-400/40 via-fuchsia-400/25 to-cyan-400/40",
 };
 
-/** Shows the player's active discount and how close they are to the next tier. */
-const DiscountBanner = ({ discount }: { discount: PaymentDiscount }) => {
+interface Props {
+  discount: PaymentDiscount;
+  /** Asks the AI strategist for a personalised bonus on this surface. */
+  onSmartOffer?: () => void;
+  thinking?: boolean;
+}
+
+/** Shows the player's active discount, the AI personal offer and next-tier progress. */
+const DiscountBanner = ({ discount, onSmartOffer, thinking }: Props) => {
   if (!discount) return null;
   const hasDiscount = discount.discount_pct > 0;
+  const hasAi = discount.ai_bonus_pct > 0 && !!discount.ai_headline;
 
   return (
     <motion.div
@@ -46,6 +54,36 @@ const DiscountBanner = ({ discount }: { discount: PaymentDiscount }) => {
             </span>
           )}
         </div>
+
+        {hasAi ? (
+          <div className="mt-2.5 rounded-xl border border-primary/30 bg-primary/10 px-2.5 py-2">
+            <div className="flex items-center gap-1.5">
+              <Wand2 className="h-3.5 w-3.5 shrink-0 text-primary" />
+              <p className="flex-1 font-display text-[11px] font-bold text-foreground">{discount.ai_headline}</p>
+              <span className="rounded-md bg-primary/25 px-1.5 py-0.5 font-display text-[10px] font-bold text-primary">
+                +{discount.ai_bonus_pct}% AI
+              </span>
+            </div>
+            <p className="mt-1 text-[10px] leading-relaxed text-muted-foreground">{discount.ai_message}</p>
+            {discount.ai_expires_at && (
+              <p className="mt-1 text-[9px] uppercase tracking-[0.14em] text-muted-foreground/80">
+                Expires {new Date(discount.ai_expires_at).toLocaleString()}
+              </p>
+            )}
+          </div>
+        ) : (
+          onSmartOffer && (
+            <button
+              type="button"
+              onClick={onSmartOffer}
+              disabled={thinking}
+              className="liquid-press mt-2.5 flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 font-display text-[11px] font-bold text-primary disabled:opacity-60"
+            >
+              {thinking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" />}
+              {thinking ? "AI is building your offer…" : "Get my AI personal offer"}
+            </button>
+          )
+        )}
       </div>
     </motion.div>
   );
