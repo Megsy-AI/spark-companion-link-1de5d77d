@@ -134,6 +134,16 @@ export const sendTonPayment = async (
     payload: buildCommentPayload(intent.memo),
   };
 
+  // Persist before opening the wallet: Telegram often destroys the mini app
+  // while the user signs, so this is the only way the payment survives.
+  rememberTonPayment({
+    intentId: intent.id,
+    action: opts.action,
+    amountTon,
+    metadata: opts.metadata ?? {},
+    createdAt: Date.now(),
+  });
+
   let sendError: unknown = null;
   try {
     // No `from` / `network` fields: some wallets reject the request when the
