@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { TonConnectUIProvider } from "@tonconnect/ui-react";
 import { resolveTonManifestUrl } from "@/lib/tonconnect-manifest";
+import TonPaymentRecovery from "@/components/TonPaymentRecovery";
 import { AppProvider } from "@/context/AppContext";
 import BottomNav from "@/components/BottomNav";
 import PrizeModal from "@/components/PrizeModal";
@@ -119,6 +120,10 @@ const App = () => (
       // A hard-coded Mini App URL makes Tonkeeper show "Unknown error" when
       // the bot/short-name differs between deployments.
       returnStrategy: "back",
+      // Default is "ios", which leaves iOS users staring at a "waiting for
+      // confirmation" modal without the wallet ever opening — the main reason
+      // payments were started but never signed.
+      skipRedirectToWallet: "never",
     }}
   >
     <QueryClientProvider client={queryClient}>
@@ -131,6 +136,7 @@ const App = () => (
             <StarryBackground />
             <TelegramBackButton />
             <ResetScrollOnNavigation />
+            <TonPaymentRecovery />
             <PrizeModal />
             <div className="max-w-lg mx-auto relative z-10">
               <AnimatedRoutes />
