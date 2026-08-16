@@ -11,14 +11,6 @@ verify_jwt = false
 [functions.send-notifications]
 verify_jwt = false
 
-[functions.reward-reminder]
-verify_jwt = false
-
-[functions.encouragement-notifications]
-verify_jwt = false
-
-[functions.mining-reminders]
-verify_jwt = false
 
 [functions.tonconnect-manifest]
 verify_jwt = false
