@@ -1,6 +1,6 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { Address, Cell } from "npm:@ton/core@0.63.1";
+import { Cell } from "npm:@ton/core@0.63.1";
 import { z } from "npm:zod@3.24.2";
 
 const TREASURY = "UQAp1QxnLJ2z44IooUovvtVShw7hJBEdxCRV3RlbCYC3D8qj";
@@ -86,9 +86,6 @@ function extractComment(input: Record<string, unknown>) {
   } catch { return ""; }
 }
 
-function normalizeAddress(value: string) {
-  try { return Address.parse(value).toRawString(); } catch { return value; }
-}
 
 function json(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
