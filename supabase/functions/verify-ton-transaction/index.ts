@@ -63,10 +63,12 @@ Deno.serve(async (req) => {
   }
 });
 
-function matchesIntent(tx: Record<string, unknown>, memo: string, amountNano: number, sender: string | null) {
+// The memo is a per-payment UUID, so it alone identifies the transfer. Matching
+// on the sender too made legitimate payments fail whenever the wallet reported a
+// different address format than the chain.
+function matchesIntent(tx: Record<string, unknown>, memo: string, amountNano: number) {
   const input = tx.in_msg as Record<string, unknown> | undefined;
   if (!input || Number(input.value) < amountNano) return false;
-  if (sender && normalizeAddress(String(input.source ?? "")) !== sender) return false;
   return extractComment(input) === memo;
 }
 
