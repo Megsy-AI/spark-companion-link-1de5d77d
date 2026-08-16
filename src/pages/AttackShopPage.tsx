@@ -43,7 +43,7 @@ const AttackShopPage = () => {
   const walletAddress = useTonAddress();
   const [verifying, setVerifying] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<BattleCategory>("attack");
-  const { discount, priceFor, refresh: refreshDiscount } = usePaymentDiscount();
+  const { discount, priceFor, refresh: refreshDiscount, requestSmartOffer, thinking: offerThinking } = usePaymentDiscount();
 
   const items = battlePackagesByCategory[activeCategory];
   const cheapestKey = useMemo(() => {
@@ -125,7 +125,7 @@ const AttackShopPage = () => {
         </div>
       </motion.div>
 
-      <DiscountBanner discount={discount} />
+      <DiscountBanner discount={discount} thinking={offerThinking} onSmartOffer={() => void requestSmartOffer("shop")} />
 
       {/* Category Selector */}
       <div className="grid grid-cols-3 gap-2 mb-4">

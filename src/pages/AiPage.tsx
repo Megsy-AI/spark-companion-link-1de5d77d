@@ -129,7 +129,7 @@ export default function AiPage() {
   const [busy, setBusy] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [buying, setBuying] = useState(false);
-  const { discount, priceFor, refresh: refreshDiscount } = usePaymentDiscount();
+  const { discount, priceFor, refresh: refreshDiscount, requestSmartOffer, thinking: offerThinking } = usePaymentDiscount();
   const proPrice = priceFor(PLAN_PRICE_TON);
   const [activeUntil, setActiveUntil] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -808,7 +808,21 @@ export default function AiPage() {
                 {discount.discount_pct > 0 && (
                   <p className="mt-1 text-[11px] font-display font-bold text-accent">
                     {discount.first_purchase ? "First purchase" : discount.tier_label} · -{discount.discount_pct}%
+                    {discount.ai_bonus_pct > 0 ? ` (incl. +${discount.ai_bonus_pct}% AI offer)` : ""}
                   </p>
+                )}
+                {discount.ai_bonus_pct > 0 ? (
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{discount.ai_message}</p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void requestSmartOffer("ai")}
+                    disabled={offerThinking}
+                    className="liquid-press mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 font-display text-[11px] font-bold text-primary disabled:opacity-60"
+                  >
+                    {offerThinking && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    {offerThinking ? "AI is building your offer…" : "Get my AI personal offer"}
+                  </button>
                 )}
                 <p className="mt-1.5 text-[clamp(9px,2.6vw,11px)] uppercase tracking-[0.18em] text-muted-foreground">
                   per month
