@@ -6,8 +6,13 @@ import { z } from "npm:zod@3.24.2";
 const TREASURY = "UQAp1QxnLJ2z44IooUovvtVShw7hJBEdxCRV3RlbCYC3D8qj";
 const BodySchema = z.object({
   intent_id: z.string().uuid(),
-  boc: z.string().min(10).max(100000),
+  // Optional: some wallets (especially inside Telegram) never return the signed
+  // BOC to the mini app even though the transfer went through on-chain, so we
+  // must be able to verify using only the unique memo of the payment intent.
+  boc: z.string().min(10).max(100000).nullable().optional(),
   sender: z.string().min(10).max(100).nullable().optional(),
+  // Shorter polling window for background reconciliation calls.
+  quick: z.boolean().optional(),
 });
 
 Deno.serve(async (req) => {
