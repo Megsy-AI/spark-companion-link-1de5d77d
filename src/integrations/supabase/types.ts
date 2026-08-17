@@ -12950,6 +12950,7 @@ export type Database = {
         }
         Returns: number
       }
+      grant_welcome_prize: { Args: { _telegram_id: number }; Returns: Json }
       has_elite_plan: { Args: { p_user_id: string }; Returns: boolean }
       has_paid_plan: { Args: { p_user_id: string }; Returns: boolean }
       has_role: {

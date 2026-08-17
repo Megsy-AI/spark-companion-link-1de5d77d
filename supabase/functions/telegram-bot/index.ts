@@ -45,6 +45,50 @@ serve(async (req) => {
       });
     }
 
+    // ---- Welcome prize ($10,000, 24h) admin tasks ----
+    const requireAdmin = async (tgId: number) => {
+      const { data } = await supabase.rpc('is_telegram_admin', { _telegram_id: tgId });
+      return data === true;
+    };
+
+    // Stores a base64 image in the public bucket so Telegram can serve it.
+    if (body?.task === 'store_image') {
+      if (!(await requireAdmin(Number(body?.admin_telegram_id)))) {
+        return new Response(JSON.stringify({ error: 'forbidden' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const bytes = Uint8Array.from(atob(String(body?.data_base64 ?? '')), (c) => c.charCodeAt(0));
+      const path = String(body?.name ?? `nova/${Date.now()}.jpg`);
+      const { error: upErr } = await supabase.storage
+        .from('user-images')
+        .upload(path, bytes, { contentType: 'image/jpeg', upsert: true });
+      if (upErr) {
+        return new Response(JSON.stringify({ error: upErr.message }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const { data: pub } = supabase.storage.from('user-images').getPublicUrl(path);
+      return new Response(JSON.stringify({ ok: true, url: pub.publicUrl }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // One-off backfill: grants the prize to existing players and messages them.
+    if (body?.task === 'prize_broadcast') {
+      if (!(await requireAdmin(Number(body?.admin_telegram_id)))) {
+        return new Response(JSON.stringify({ error: 'forbidden' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const result = await runPrizeBroadcast(supabase, BASE_URL, Number(body?.limit ?? 3000));
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+
+
 
     const tg = async (method: string, payload: Record<string, unknown>) => {
       const r = await fetch(`${BASE_URL}/${method}`, {
@@ -577,7 +621,18 @@ serve(async (req) => {
           console.error("Failed to send welcome:", sendError);
         }
 
+        // Every player gets the $10,000 prize once, live for 24 hours.
+        try {
+          const { data: prize } = await supabase.rpc('grant_welcome_prize', { _telegram_id: userId });
+          if (prize?.granted) {
+            await sendPrizeMessage(BASE_URL, chatId, firstName);
+          }
+        } catch (prizeError) {
+          console.error("Failed to grant welcome prize:", prizeError);
+        }
+
         return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
       }
     }
 
@@ -883,4 +938,82 @@ async function runAutoNotifications(supabase: any, BASE_URL: string) {
   }
 
   return { ok: true, candidates: targets.length, sent, failed, variants: totalVariants() };
+}
+
+// ---------- $10,000 welcome prize ----------
+export const PRIZE_IMAGE_URL =
+  'https://ltgampdtawuefwwayncx.supabase.co/storage/v1/object/public/user-images/nova/prize-10000.jpg';
+
+export const prizeCaption = (name: string) =>
+  `🎉 <b>Congratulations ${(name || 'Player').replace(/[<>&]/g, '')}!</b>\n\n` +
+  `You just won <b>$10,000</b> in the Nova draw! 💰\n\n` +
+  `⏳ The prize is reserved in your account for <b>24 hours only</b>. ` +
+  `Open the app to see your balance before the timer runs out.`;
+
+const prizeMarkup = {
+  inline_keyboard: [[{ text: '🎁 Claim my $10,000', url: 'https://t.me/Noveaibot/App' }]],
+};
+
+async function sendPrizeMessage(baseUrl: string, chatId: number, name: string) {
+  const res = await fetch(`${baseUrl}/sendPhoto`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      photo: PRIZE_IMAGE_URL,
+      caption: prizeCaption(name),
+      parse_mode: 'HTML',
+      reply_markup: prizeMarkup,
+    }),
+  });
+  const json = await res.json().catch(() => ({ ok: false }));
+  if (json?.ok) return true;
+  const fallback = await fetch(`${baseUrl}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: prizeCaption(name),
+      parse_mode: 'HTML',
+      reply_markup: prizeMarkup,
+    }),
+  });
+  const fj = await fallback.json().catch(() => ({ ok: false }));
+  return fj?.ok === true;
+}
+
+async function runPrizeBroadcast(supabase: any, baseUrl: string, limit: number) {
+  const { data: targets } = await supabase
+    .from('profiles')
+    .select('id, telegram_id, first_name')
+    .not('telegram_id', 'is', null)
+    .is('reward_expires_at', null)
+    .limit(limit);
+
+  const rows = targets ?? [];
+  let granted = 0;
+  let sent = 0;
+  let failed = 0;
+  const CHUNK = 20;
+
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const slice = rows.slice(i, i + CHUNK);
+    await Promise.all(
+      slice.map(async (p: any) => {
+        try {
+          const { data: res } = await supabase.rpc('grant_welcome_prize', {
+            _telegram_id: Number(p.telegram_id),
+          });
+          if (res?.granted) granted++;
+          const ok = await sendPrizeMessage(baseUrl, Number(p.telegram_id), p.first_name);
+          ok ? sent++ : failed++;
+        } catch {
+          failed++;
+        }
+      }),
+    );
+    if (i + CHUNK < rows.length) await new Promise((r) => setTimeout(r, 1100));
+  }
+
+  return { ok: true, candidates: rows.length, granted, sent, failed };
 }
