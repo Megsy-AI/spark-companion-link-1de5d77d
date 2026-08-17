@@ -1001,7 +1001,7 @@ async function runPrizeBroadcast(supabase: any, baseUrl: string, limit: number) 
   let granted = 0;
   let sent = 0;
   let failed = 0;
-  const CHUNK = 20;
+  const CHUNK = 25;
 
   for (let i = 0; i < rows.length; i += CHUNK) {
     const slice = rows.slice(i, i + CHUNK);
