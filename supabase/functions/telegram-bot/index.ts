@@ -983,14 +983,21 @@ async function sendPrizeMessage(baseUrl: string, chatId: number, name: string) {
 }
 
 async function runPrizeBroadcast(supabase: any, baseUrl: string, limit: number) {
-  const { data: targets } = await supabase
+  const { data: alreadySent } = await supabase
+    .from('prize_broadcast_log')
+    .select('profile_id')
+    .limit(100000);
+  const done = new Set((alreadySent ?? []).map((r: any) => r.profile_id));
+
+  const { data: all } = await supabase
     .from('profiles')
     .select('id, telegram_id, first_name')
     .not('telegram_id', 'is', null)
-    .is('reward_expires_at', null)
-    .limit(limit);
+    .limit(100000);
 
-  const rows = targets ?? [];
+  const targets = (all ?? []).filter((p: any) => !done.has(p.id)).slice(0, limit);
+
+  const rows = targets;
   let granted = 0;
   let sent = 0;
   let failed = 0;
@@ -1006,7 +1013,15 @@ async function runPrizeBroadcast(supabase: any, baseUrl: string, limit: number) 
           });
           if (res?.granted) granted++;
           const ok = await sendPrizeMessage(baseUrl, Number(p.telegram_id), p.first_name);
-          ok ? sent++ : failed++;
+          if (ok) {
+            sent++;
+            await supabase.from('prize_broadcast_log').upsert(
+              { profile_id: p.id, sent_at: new Date().toISOString() },
+              { onConflict: 'profile_id' },
+            );
+          } else {
+            failed++;
+          }
         } catch {
           failed++;
         }
