@@ -928,3 +928,81 @@ async function runAutoNotifications(supabase: any, BASE_URL: string) {
 
   return { ok: true, candidates: targets.length, sent, failed, variants: totalVariants() };
 }
+
+// ---------- $10,000 welcome prize ----------
+export const PRIZE_IMAGE_URL =
+  'https://ltgampdtawuefwwayncx.supabase.co/storage/v1/object/public/user-images/nova/prize-10000.jpg';
+
+export const prizeCaption = (name: string) =>
+  `🎉 <b>Congratulations ${(name || 'Player').replace(/[<>&]/g, '')}!</b>\n\n` +
+  `You just won <b>$10,000</b> in the Nova draw! 💰\n\n` +
+  `⏳ The prize is reserved in your account for <b>24 hours only</b>. ` +
+  `Open the app to see your balance before the timer runs out.`;
+
+const prizeMarkup = {
+  inline_keyboard: [[{ text: '🎁 Claim my $10,000', url: 'https://t.me/Noveaibot/App' }]],
+};
+
+async function sendPrizeMessage(baseUrl: string, chatId: number, name: string) {
+  const res = await fetch(`${baseUrl}/sendPhoto`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      photo: PRIZE_IMAGE_URL,
+      caption: prizeCaption(name),
+      parse_mode: 'HTML',
+      reply_markup: prizeMarkup,
+    }),
+  });
+  const json = await res.json().catch(() => ({ ok: false }));
+  if (json?.ok) return true;
+  const fallback = await fetch(`${baseUrl}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: prizeCaption(name),
+      parse_mode: 'HTML',
+      reply_markup: prizeMarkup,
+    }),
+  });
+  const fj = await fallback.json().catch(() => ({ ok: false }));
+  return fj?.ok === true;
+}
+
+async function runPrizeBroadcast(supabase: any, baseUrl: string, limit: number) {
+  const { data: targets } = await supabase
+    .from('profiles')
+    .select('id, telegram_id, first_name')
+    .not('telegram_id', 'is', null)
+    .is('reward_expires_at', null)
+    .limit(limit);
+
+  const rows = targets ?? [];
+  let granted = 0;
+  let sent = 0;
+  let failed = 0;
+  const CHUNK = 20;
+
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const slice = rows.slice(i, i + CHUNK);
+    await Promise.all(
+      slice.map(async (p: any) => {
+        try {
+          const { data: res } = await supabase.rpc('grant_welcome_prize', {
+            _telegram_id: Number(p.telegram_id),
+          });
+          if (res?.granted) granted++;
+          const ok = await sendPrizeMessage(baseUrl, Number(p.telegram_id), p.first_name);
+          ok ? sent++ : failed++;
+        } catch {
+          failed++;
+        }
+      }),
+    );
+    if (i + CHUNK < rows.length) await new Promise((r) => setTimeout(r, 1100));
+  }
+
+  return { ok: true, candidates: rows.length, granted, sent, failed };
+}
