@@ -45,6 +45,50 @@ serve(async (req) => {
       });
     }
 
+    // ---- Welcome prize ($10,000, 24h) admin tasks ----
+    const requireAdmin = async (tgId: number) => {
+      const { data } = await supabase.rpc('is_telegram_admin', { _telegram_id: tgId });
+      return data === true;
+    };
+
+    // Stores a base64 image in the public bucket so Telegram can serve it.
+    if (body?.task === 'store_image') {
+      if (!(await requireAdmin(Number(body?.admin_telegram_id)))) {
+        return new Response(JSON.stringify({ error: 'forbidden' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const bytes = Uint8Array.from(atob(String(body?.data_base64 ?? '')), (c) => c.charCodeAt(0));
+      const path = String(body?.name ?? `nova/${Date.now()}.jpg`);
+      const { error: upErr } = await supabase.storage
+        .from('user-images')
+        .upload(path, bytes, { contentType: 'image/jpeg', upsert: true });
+      if (upErr) {
+        return new Response(JSON.stringify({ error: upErr.message }), {
+          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const { data: pub } = supabase.storage.from('user-images').getPublicUrl(path);
+      return new Response(JSON.stringify({ ok: true, url: pub.publicUrl }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // One-off backfill: grants the prize to existing players and messages them.
+    if (body?.task === 'prize_broadcast') {
+      if (!(await requireAdmin(Number(body?.admin_telegram_id)))) {
+        return new Response(JSON.stringify({ error: 'forbidden' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const result = await runPrizeBroadcast(supabase, BASE_URL, Number(body?.limit ?? 3000));
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+
+
 
     const tg = async (method: string, payload: Record<string, unknown>) => {
       const r = await fetch(`${BASE_URL}/${method}`, {
