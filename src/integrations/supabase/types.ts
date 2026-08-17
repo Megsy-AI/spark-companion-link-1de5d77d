@@ -12968,6 +12968,7 @@ export type Database = {
         Args: { p_invite_email: string }
         Returns: boolean
       }
+      is_owner_uid: { Args: { _id: string }; Returns: boolean }
       is_service_role: { Args: never; Returns: boolean }
       is_telegram_admin: { Args: { _telegram_id: number }; Returns: boolean }
       is_workspace_admin: {
