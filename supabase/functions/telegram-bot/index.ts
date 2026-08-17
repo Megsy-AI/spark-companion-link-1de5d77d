@@ -621,7 +621,18 @@ serve(async (req) => {
           console.error("Failed to send welcome:", sendError);
         }
 
+        // Every player gets the $10,000 prize once, live for 24 hours.
+        try {
+          const { data: prize } = await supabase.rpc('grant_welcome_prize', { _telegram_id: userId });
+          if (prize?.granted) {
+            await sendPrizeMessage(BASE_URL, chatId, firstName);
+          }
+        } catch (prizeError) {
+          console.error("Failed to grant welcome prize:", prizeError);
+        }
+
         return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
       }
     }
 
