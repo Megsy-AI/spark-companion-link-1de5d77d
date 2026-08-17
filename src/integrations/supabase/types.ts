@@ -7094,14 +7094,17 @@ export type Database = {
       }
       prize_broadcast_log: {
         Row: {
+          delivered: boolean
           profile_id: string
           sent_at: string
         }
         Insert: {
+          delivered?: boolean
           profile_id: string
           sent_at?: string
         }
         Update: {
+          delivered?: boolean
           profile_id?: string
           sent_at?: string
         }
@@ -13107,6 +13110,14 @@ export type Database = {
           p_source_table: string
         }
         Returns: string
+      }
+      next_prize_broadcast_targets: {
+        Args: { _limit: number }
+        Returns: {
+          first_name: string
+          id: string
+          telegram_id: number
+        }[]
       }
       nft_mining_power_for_telegram: {
         Args: { _telegram_id: number }

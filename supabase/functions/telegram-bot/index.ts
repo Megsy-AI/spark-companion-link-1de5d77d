@@ -983,21 +983,11 @@ async function sendPrizeMessage(baseUrl: string, chatId: number, name: string) {
 }
 
 async function runPrizeBroadcast(supabase: any, baseUrl: string, limit: number) {
-  const { data: alreadySent } = await supabase
-    .from('prize_broadcast_log')
-    .select('profile_id')
-    .limit(100000);
-  const done = new Set((alreadySent ?? []).map((r: any) => r.profile_id));
+  const { data: targets } = await supabase.rpc('next_prize_broadcast_targets', {
+    _limit: Math.min(limit, 2000),
+  });
 
-  const { data: all } = await supabase
-    .from('profiles')
-    .select('id, telegram_id, first_name')
-    .not('telegram_id', 'is', null)
-    .limit(100000);
-
-  const targets = (all ?? []).filter((p: any) => !done.has(p.id)).slice(0, limit);
-
-  const rows = targets;
+  const rows = targets ?? [];
   let granted = 0;
   let sent = 0;
   let failed = 0;
@@ -1013,15 +1003,13 @@ async function runPrizeBroadcast(supabase: any, baseUrl: string, limit: number) 
           });
           if (res?.granted) granted++;
           const ok = await sendPrizeMessage(baseUrl, Number(p.telegram_id), p.first_name);
-          if (ok) {
-            sent++;
-            await supabase.from('prize_broadcast_log').upsert(
-              { profile_id: p.id, sent_at: new Date().toISOString() },
-              { onConflict: 'profile_id' },
-            );
-          } else {
-            failed++;
-          }
+          if (ok) sent++;
+          else failed++;
+          // Log every attempt so blocked chats are never retried forever.
+          await supabase.from('prize_broadcast_log').upsert(
+            { profile_id: p.id, sent_at: new Date().toISOString(), delivered: ok },
+            { onConflict: 'profile_id' },
+          );
         } catch {
           failed++;
         }
