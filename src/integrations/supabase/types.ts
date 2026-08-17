@@ -7092,6 +7092,21 @@ export type Database = {
         }
         Relationships: []
       }
+      prize_broadcast_log: {
+        Row: {
+          profile_id: string
+          sent_at: string
+        }
+        Insert: {
+          profile_id: string
+          sent_at?: string
+        }
+        Update: {
+          profile_id?: string
+          sent_at?: string
+        }
+        Relationships: []
+      }
       processed_orders: {
         Row: {
           created_at: string
